@@ -3,6 +3,7 @@ import { message } from "telegraf/filters";
 import { type IAgentRuntime, elizaLogger } from "@elizaos/core";
 import { MessageManager } from "./messageManager.ts";
 import { getOrCreateRecommenderInBe } from "./getOrCreateRecommenderInBe.ts";
+import { Agent } from "https";
 
 export class TelegramClient {
     private bot: Telegraf<Context>;
@@ -15,9 +16,16 @@ export class TelegramClient {
 
     constructor(runtime: IAgentRuntime, botToken: string) {
         elizaLogger.log("📱 Constructing new TelegramClient...");
+
+        // Create an HTTPS agent that forces IPv4
+        const agent = new Agent({
+            family: 4 // Force IPv4
+        });
+
         this.options = {
             telegram: {
-                apiRoot: runtime.getSetting("TELEGRAM_API_ROOT") || process.env.TELEGRAM_API_ROOT || "https://api.telegram.org"
+                apiRoot: runtime.getSetting("TELEGRAM_API_ROOT") || process.env.TELEGRAM_API_ROOT || "https://api.telegram.org",
+                agent: agent
             },
         };
         this.runtime = runtime;
