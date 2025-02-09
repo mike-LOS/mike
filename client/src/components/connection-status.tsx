@@ -5,12 +5,14 @@ import { apiClient } from "@/lib/api";
 import { useState } from "react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 import { Activity } from "lucide-react";
+import { useAuth } from "@/hooks/use-auth";
 
 export default function ConnectionStatus() {
     const [queryTime, setQueryTime] = useState<number | null>(null);
+    const { isAuthenticated, isReady, walletAddress } = useAuth();
 
     const query = useQuery({
-        queryKey: ["status"],
+        queryKey: ["status", walletAddress],
         queryFn: async () => {
             const start = performance.now();
             const data = await apiClient.getAgents();
@@ -18,13 +20,26 @@ export default function ConnectionStatus() {
             setQueryTime(end - start);
             return data;
         },
-        refetchInterval: 5_000,
+        refetchInterval: isAuthenticated && isReady ? 5_000 : false,
+        enabled: isAuthenticated && isReady && Boolean(walletAddress),
+        staleTime: 1000, // Consider data fresh for 1 second
         retry: 1,
-        refetchOnWindowFocus: "always",
+        refetchOnWindowFocus: false // Disable refetch on window focus to reduce unnecessary calls
     });
 
-    const connected = query?.isSuccess && !query?.isError;
+    const apiConnected = query?.isSuccess && !query?.isError;
     const isLoading = query?.isRefetching || query?.isPending;
+    const connected = apiConnected && isAuthenticated;
+
+    console.log('Connection status state:', {
+        isAuthenticated,
+        isReady,
+        walletAddress,
+        apiConnected,
+        isLoading,
+        connected,
+        timestamp: new Date().toISOString()
+    });
 
     return (
         <SidebarMenuItem>
@@ -55,9 +70,11 @@ export default function ConnectionStatus() {
                                 >
                                     {isLoading
                                         ? "Connecting..."
-                                        : connected
-                                          ? "Connected"
-                                          : "Disconnected"}
+                                        : !isAuthenticated
+                                          ? "Wallet Not Connected"
+                                          : connected
+                                            ? "Connected"
+                                            : "API Disconnected"}
                                 </span>
                             </div>
                         </div>

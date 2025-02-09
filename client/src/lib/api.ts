@@ -1,6 +1,24 @@
 import type { UUID, Character } from "@elizaos/core";
 
-const BASE_URL = `http://localhost:${import.meta.env.VITE_SERVER_PORT}`;
+// Default to 3000 if not specified
+const SERVER_PORT = import.meta.env.VITE_SERVER_PORT || 3000;
+const BASE_URL = `http://localhost:${SERVER_PORT}`;
+
+console.log('API Configuration:', {
+    SERVER_PORT,
+    BASE_URL
+});
+
+let currentWalletAddress: string | undefined;
+
+export const setWalletAddress = (address: string | undefined) => {
+    console.log('Setting wallet address in API client:', {
+        previous: currentWalletAddress,
+        new: address,
+        timestamp: new Date().toISOString()
+    });
+    currentWalletAddress = address;
+};
 
 const fetcher = async ({
     url,
@@ -13,20 +31,35 @@ const fetcher = async ({
     body?: object | FormData;
     headers?: HeadersInit;
 }) => {
+    console.log(`API Request initiated for ${url}:`, {
+        method,
+        currentWalletAddress,
+        hasBody: Boolean(body),
+        customHeaders: headers,
+        timestamp: new Date().toISOString()
+    });
+
     const options: RequestInit = {
         method: method ?? "GET",
-        headers: headers
-            ? headers
-            : {
-                  Accept: "application/json",
-                  "Content-Type": "application/json",
-              },
+        headers: {
+            Accept: "application/json",
+            "Content-Type": "application/json",
+            ...(currentWalletAddress ? { "X-Wallet-Address": currentWalletAddress } : {}),
+            ...(headers || {})
+        },
     };
+
+    console.log('Request configuration:', {
+        url: `${BASE_URL}${url}`,
+        method: options.method,
+        headers: options.headers,
+        hasBody: Boolean(options.body),
+        timestamp: new Date().toISOString()
+    });
 
     if (method === "POST") {
         if (body instanceof FormData) {
             if (options.headers && typeof options.headers === 'object') {
-                // Create new headers object without Content-Type
                 options.headers = Object.fromEntries(
                     Object.entries(options.headers as Record<string, string>)
                         .filter(([key]) => key !== 'Content-Type')
@@ -38,15 +71,23 @@ const fetcher = async ({
         }
     }
 
-    return fetch(`${BASE_URL}${url}`, options).then(async (resp) => {
-        const contentType = resp.headers.get('Content-Type');
-        if (contentType === "audio/mpeg") {
-            return await resp.blob();
-        }
+    try {
+        const response = await fetch(`${BASE_URL}${url}`, options);
+        console.log(`API Response from ${url}:`, {
+            status: response.status,
+            ok: response.ok,
+            contentType: response.headers.get('Content-Type'),
+            timestamp: new Date().toISOString()
+        });
 
-        if (!resp.ok) {
-            const errorText = await resp.text();
-            console.error("Error: ", errorText);
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error("API Error Response:", {
+                status: response.status,
+                url,
+                errorText,
+                timestamp: new Date().toISOString()
+            });
 
             let errorMessage = "An error occurred.";
             try {
@@ -59,8 +100,20 @@ const fetcher = async ({
             throw new Error(errorMessage);
         }
             
-        return resp.json();
-    });
+        const data = await response.json();
+        console.log(`API Success Response from ${url}:`, {
+            data,
+            timestamp: new Date().toISOString()
+        });
+        return data;
+    } catch (error) {
+        console.error("API Request failed:", {
+            url,
+            error: error instanceof Error ? error.message : String(error),
+            timestamp: new Date().toISOString()
+        });
+        throw error;
+    }
 };
 
 export const apiClient = {

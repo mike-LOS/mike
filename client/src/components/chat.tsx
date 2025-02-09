@@ -37,6 +37,8 @@ type AnimatedDivProps = AnimatedProps<{ style: React.CSSProperties }> & {
 };
 
 export default function Page({ agentId }: { agentId: UUID }) {
+    console.log('Chat component rendering, agentId:', agentId);
+    
     const { toast } = useToast();
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [input, setInput] = useState("");
@@ -46,6 +48,13 @@ export default function Page({ agentId }: { agentId: UUID }) {
 
     const queryClient = useQueryClient();
 
+    useEffect(() => {
+        console.log('Chat component mounted');
+        return () => {
+            console.log('Chat component unmounted');
+        };
+    }, []);
+
     const getMessageVariant = (role: string) =>
         role !== "user" ? "received" : "sent";
 
@@ -54,6 +63,7 @@ export default function Page({ agentId }: { agentId: UUID }) {
     });
    
     useEffect(() => {
+        console.log('Scrolling to bottom, messages changed');
         scrollToBottom();
     }, [queryClient.getQueryData(["messages", agentId])]);
 
@@ -156,9 +166,8 @@ export default function Page({ agentId }: { agentId: UUID }) {
         }
     };
 
-    const messages =
-        queryClient.getQueryData<ContentWithUser[]>(["messages", agentId]) ||
-        [];
+    const messages = queryClient.getQueryData<ContentWithUser[]>(["messages", agentId]) || [];
+    console.log('Current messages:', messages);
 
     const transitions = useTransition(messages, {
         keys: (message) =>

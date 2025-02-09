@@ -1,5 +1,4 @@
 import { useQuery } from "@tanstack/react-query";
-import info from "@/lib/info.json";
 import {
     Sidebar,
     SidebarContent,
@@ -16,15 +15,19 @@ import {
 import { apiClient } from "@/lib/api";
 import { NavLink, useLocation } from "react-router";
 import type { UUID } from "@elizaos/core";
-import { Book, Cog, User } from "lucide-react";
-import ConnectionStatus from "./connection-status";
+import { Book, Cog, User, Home } from "lucide-react";
+import { useAuth } from "@/hooks/use-auth";
 
 export function AppSidebar() {
     const location = useLocation();
+    const { isAuthenticated, isReady, walletAddress } = useAuth();
+    
     const query = useQuery({
-        queryKey: ["agents"],
+        queryKey: ["agents", walletAddress],
         queryFn: () => apiClient.getAgents(),
-        refetchInterval: 5_000,
+        refetchInterval: isAuthenticated && isReady ? 5_000 : false,
+        enabled: isAuthenticated && isReady && Boolean(walletAddress),
+        staleTime: 1000,
     });
 
     const agents = query?.data?.agents;
@@ -36,19 +39,9 @@ export function AppSidebar() {
                     <SidebarMenuItem>
                         <SidebarMenuButton size="lg" asChild>
                             <NavLink to="/">
-                                <img
-                                    alt="elizaos-icon"
-                                    src="/elizaos-icon.png"
-                                    width="100%"
-                                    height="100%"
-                                    className="size-7"
-                                />
-
-                                <div className="flex flex-col gap-0.5 leading-none">
-                                    <span className="font-semibold">
-                                        ElizaOS
-                                    </span>
-                                    <span className="">v{info?.version}</span>
+                                <div className="flex items-center gap-2 p-2 rounded-md hover:bg-muted">
+                                    <Home className="size-4" />
+                                    <span>Home</span>
                                 </div>
                             </NavLink>
                         </SidebarMenuButton>
@@ -60,11 +53,17 @@ export function AppSidebar() {
                     <SidebarGroupLabel>Agents</SidebarGroupLabel>
                     <SidebarGroupContent>
                         <SidebarMenu>
-                            {query?.isPending ? (
+                            {!isAuthenticated ? (
+                                <SidebarMenuItem>
+                                    <SidebarMenuButton disabled>
+                                        Connect wallet to view agents
+                                    </SidebarMenuButton>
+                                </SidebarMenuItem>
+                            ) : query?.isPending ? (
                                 <div>
                                     {Array.from({ length: 5 }).map(
-                                        (_, _index) => (
-                                            <SidebarMenuItem key={"skeleton-item"}>
+                                        (_, index) => (
+                                            <SidebarMenuItem key={`skeleton-${index}`}>
                                                 <SidebarMenuSkeleton />
                                             </SidebarMenuItem>
                                         )
@@ -115,7 +114,6 @@ export function AppSidebar() {
                             <Cog /> Settings
                         </SidebarMenuButton>
                     </SidebarMenuItem>
-                    <ConnectionStatus />
                 </SidebarMenu>
             </SidebarFooter>
         </Sidebar>
