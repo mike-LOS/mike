@@ -103,6 +103,7 @@
         "@elizaos/plugin-video-generation": "workspace:*",
         "@elizaos/plugin-web-search": "workspace:*",
         "@elizaos/plugin-dexscreener": "workspace:*",
+        "@elizaos/plugin-privy": "workspace:*",
         "@elizaos/plugin-letzai": "workspace:*",
         "@elizaos/plugin-thirdweb": "workspace:*",
         "@elizaos/plugin-genlayer": "workspace:*",

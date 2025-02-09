@@ -12,12 +12,19 @@ import {
     validateCharacterConfig,
     ServiceType,
     type Character,
+    type Service,
 } from "@elizaos/core";
 
 import type { TeeLogQuery, TeeLogService } from "@elizaos/plugin-tee-log";
 import { REST, Routes } from "discord.js";
 import type { DirectClient } from ".";
 import { validateUuid } from "@elizaos/core";
+
+// Define WhatsApp service interface
+interface IWhatsAppService extends Service {
+    verifyWebhook(token: string): Promise<boolean>;
+    handleWebhook(event: any): Promise<void>;
+}
 
 interface UUIDParams {
     agentId: UUID;
@@ -453,6 +460,90 @@ export function createApiRouter(
             res.status(404).json({ error: "Agent not found" });
         }
     });
+
+    // WhatsApp Webhook Routes
+    router.route("/webhook/whatsapp")
+        .get(async (req: express.Request, res: express.Response) => {
+            try {
+                const mode = req.query["hub.mode"];
+                const token = req.query["hub.verify_token"];
+                const challenge = req.query["hub.challenge"];
+
+                // Check if a token and mode were sent
+                if (mode && token) {
+                    // Get the first agent that has the WhatsApp service
+                    const agent = Array.from(agents.values()).find(agent => 
+                        agent.services.has(ServiceType.TEXT_GENERATION)
+                    );
+
+                    if (!agent) {
+                        elizaLogger.error("No WhatsApp service found");
+                        res.sendStatus(403);
+                        return;
+                    }
+
+                    const whatsappService = agent.getService<IWhatsAppService>(ServiceType.TEXT_GENERATION);
+                    if (!whatsappService) {
+                        elizaLogger.error("WhatsApp service not found");
+                        res.sendStatus(403);
+                        return;
+                    }
+
+                    try {
+                        const verified = await whatsappService.verifyWebhook(token as string);
+                        if (verified && mode === "subscribe") {
+                            // Respond with 200 OK and challenge token from the request
+                            elizaLogger.info("WhatsApp webhook verified");
+                            res.status(200).send(challenge);
+                            return;
+                        }
+                    } catch (error) {
+                        elizaLogger.error("WhatsApp webhook verification error:", error);
+                        res.sendStatus(500);
+                        return;
+                    }
+                }
+                
+                // Responds with '403 Forbidden' if verify tokens do not match
+                res.sendStatus(403);
+            } catch (error) {
+                elizaLogger.error("WhatsApp webhook verification error:", error);
+                res.sendStatus(500);
+            }
+        })
+        .post(async (req: express.Request, res: express.Response) => {
+            try {
+                // Get the first agent that has the WhatsApp service
+                const agent = Array.from(agents.values()).find(agent => 
+                    agent.services.has(ServiceType.TEXT_GENERATION)
+                );
+
+                if (!agent) {
+                    elizaLogger.error("No WhatsApp service found");
+                    res.sendStatus(403);
+                    return;
+                }
+
+                const whatsappService = agent.getService<IWhatsAppService>(ServiceType.TEXT_GENERATION);
+                if (!whatsappService) {
+                    elizaLogger.error("WhatsApp service not found");
+                    res.sendStatus(403);
+                    return;
+                }
+
+                try {
+                    await whatsappService.handleWebhook(req.body);
+                    // Return a 200 OK response to acknowledge the webhook
+                    res.sendStatus(200);
+                } catch (error) {
+                    elizaLogger.error("WhatsApp webhook handling error:", error);
+                    res.sendStatus(500);
+                }
+            } catch (error) {
+                elizaLogger.error("WhatsApp webhook handling error:", error);
+                res.sendStatus(500);
+            }
+        });
 
     return router;
 }
