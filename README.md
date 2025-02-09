@@ -14,6 +14,8 @@
 
 Mike is an AI Legal Agent designed to assist lawyers, companies, and individuals with crypto-legal matters, onboarding, trading advice, and due diligence on blockchain projects. Built on the Eliza OS framework, Mike combines legal expertise with blockchain technology to provide comprehensive legal support in the Web3 space.
 
+The project is accessible at the branch `feat/mike`.
+
 
 ## ✨ Features
 
@@ -135,11 +137,6 @@ Comprehensive documentation is available at [mike-los.github.io/mike](https://mi
 
 Mike is an AI assistant and does not provide legal advice. Always consult with qualified legal professionals for specific legal matters. The information provided is for general guidance only.
 
-## 👥 Contributors
-
-<a href="https://github.com/mike-LOS/mike/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=mike-LOS/mike" />
-</a>
 
 ## 📜 License
 
