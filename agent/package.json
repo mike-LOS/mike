@@ -115,6 +115,7 @@
         "@elizaos/plugin-news": "workspace:*",
         "@elizaos/plugin-nft-collections": "workspace:*",
         "@elizaos/plugin-nft-generation": "workspace:*",
+        "@elizaos/plugin-nillion": "workspace:*",
         "@elizaos/plugin-node": "workspace:*",
         "@elizaos/plugin-nvidia-nim": "workspace:*",
         "@elizaos/plugin-obsidian": "workspace:*",
